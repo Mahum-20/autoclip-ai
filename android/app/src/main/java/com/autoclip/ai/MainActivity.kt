@@ -1,5 +1,10 @@
 package com.autoclip.ai
 
+@file:OptIn(
+    androidx.compose.foundation.ExperimentalFoundationApi::class,
+    androidx.compose.material3.ExperimentalMaterial3Api::class
+)
+
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity

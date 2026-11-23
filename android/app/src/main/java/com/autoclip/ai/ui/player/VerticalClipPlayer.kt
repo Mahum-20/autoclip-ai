@@ -1,8 +1,9 @@
 package com.autoclip.ai.ui.player
 
+@file:OptIn(androidx.media3.common.util.UnstableApi::class)
+
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,12 +16,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 
-@OptIn(UnstableApi::class)
 @Composable
 fun VerticalClipPlayer(
     videoUrl: String,
