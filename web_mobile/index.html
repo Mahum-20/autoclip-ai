@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AutoClip Mobile</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body {
+      background-color: #0b0f19;
+      color: #f3f4f6;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow-x: hidden;
+      touch-action: pan-y;
+    }
+    .clip-container {
+      scroll-snap-type: y mandatory;
+      overflow-y: scroll;
+      height: 100vh;
+      height: 100dvh;
+    }
+    .clip-card {
+      scroll-snap-align: start;
+      scroll-snap-stop: always;
+      height: 100vh;
+      height: 100dvh;
+      position: relative;
+    }
+    .gradient-overlay {
+      background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, transparent 20%, transparent 70%, rgba(0,0,0,0.85) 100%);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-white select-none">
+
+  <!-- TOP HEADER / TAB BAR -->
+  <header class="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 bg-slate-950/70 backdrop-blur-md border-b border-slate-800/50">
+    <div class="flex items-center space-x-2">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/30">
+        <i data-lucide="scissors" class="w-4 h-4 text-white"></i>
+      </div>
+      <span class="font-bold text-lg tracking-wide bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">AutoClip AI</span>
+    </div>
+    <button id="openSubmitModal" class="px-3 py-1.5 rounded-full text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white flex items-center space-x-1 shadow-md shadow-purple-600/30 transition">
+      <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+      <span>New VOD</span>
+    </button>
+  </header>
+
+  <!-- MAIN APP CONTAINER -->
+  <main id="app">
+    <!-- EMPTY STATE / WELCOME -->
+    <section id="emptyState" class="h-screen flex flex-col items-center justify-center px-6 text-center">
+      <div class="w-20 h-20 rounded-2xl bg-purple-900/30 border border-purple-500/20 flex items-center justify-center mb-6">
+        <i data-lucide="clapperboard" class="w-10 h-10 text-purple-400"></i>
+      </div>
+      <h2 class="text-2xl font-bold mb-2">No Clips Generated Yet</h2>
+      <p class="text-slate-400 text-sm mb-6 max-w-xs">
+        Paste a Twitch stream or YouTube VOD link to automatically extract viral 9:16 highlights.
+      </p>
+      <button id="startFirstJobBtn" class="w-full max-w-xs py-3.5 rounded-xl font-semibold bg-gradient-to-r from-purple-600 to-pink-600 shadow-lg shadow-purple-600/30 flex items-center justify-center space-x-2">
+        <i data-lucide="sparkles" class="w-4 h-4"></i>
+        <span>Start Auto-Clipping</span>
+      </button>
+    </section>
+
+    <!-- PROCESSING SCREEN -->
+    <section id="processingState" class="hidden h-screen flex flex-col items-center justify-center px-6 text-center">
+      <div class="relative w-24 h-24 mb-6">
+        <div class="absolute inset-0 rounded-full border-4 border-purple-900/30"></div>
+        <div id="spinnerRing" class="absolute inset-0 rounded-full border-4 border-transparent border-t-purple-500 animate-spin"></div>
+        <div class="absolute inset-0 flex items-center justify-center">
+          <span id="progressPercentText" class="text-xl font-bold text-purple-400">0%</span>
+        </div>
+      </div>
+      <h3 class="text-xl font-bold mb-1">AI Watching Your VOD</h3>
+      <p id="currentStepText" class="text-purple-300/80 text-sm mb-6 max-w-xs animate-pulse">Initializing pipeline...</p>
+      
+      <!-- Progress Bar -->
+      <div class="w-full max-w-xs bg-slate-800 rounded-full h-2.5 overflow-hidden">
+        <div id="progressBarFill" class="bg-gradient-to-r from-purple-500 to-pink-500 h-2.5 rounded-full transition-all duration-300" style="width: 5%"></div>
+      </div>
+    </section>
+
+    <!-- VERTICAL CLIP FEED (TIKTOK/REELS STYLE) -->
+    <section id="clipsFeed" class="hidden clip-container">
+      <!-- Cards will be dynamically injected here -->
+    </section>
+  </main>
+
+  <!-- SUBMIT VOD MODAL -->
+  <div id="submitModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-2xl p-6 shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold">New Auto-Clip Task</h3>
+        <button id="closeSubmitModal" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="clipForm" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Twitch / YouTube VOD Link</label>
+          <div class="relative">
+            <input type="url" id="vodUrlInput" required placeholder="https://www.twitch.tv/videos/..." 
+              class="w-full px-4 py-3 rounded-xl bg-slate-800/80 border border-slate-700 focus:outline-none focus:border-purple-500 text-sm text-white placeholder-slate-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Max Clips</label>
+            <select id="maxClipsInput" class="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-sm text-white">
+              <option value="3">3 Clips</option>
+              <option value="5" selected>5 Clips</option>
+              <option value="10">10 Clips</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Format</label>
+            <select id="verticalInput" class="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-sm text-white">
+              <option value="true" selected>9:16 Vertical (Shorts/TikTok)</option>
+              <option value="false">Original 16:9</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" class="w-full py-3.5 rounded-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-lg shadow-purple-600/30 flex items-center justify-center space-x-2 transition mt-2">
+          <i data-lucide="sparkles" class="w-4 h-4"></i>
+          <span>Generate Highlights</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
+    // DOM Elements
+    const emptyState = document.getElementById('emptyState');
+    const processingState = document.getElementById('processingState');
+    const clipsFeed = document.getElementById('clipsFeed');
+    const submitModal = document.getElementById('submitModal');
+    const openSubmitModal = document.getElementById('openSubmitModal');
+    const closeSubmitModal = document.getElementById('closeSubmitModal');
+    const startFirstJobBtn = document.getElementById('startFirstJobBtn');
+    const clipForm = document.getElementById('clipForm');
+    const vodUrlInput = document.getElementById('vodUrlInput');
+    const maxClipsInput = document.getElementById('maxClipsInput');
+    const verticalInput = document.getElementById('verticalInput');
+    const progressPercentText = document.getElementById('progressPercentText');
+    const currentStepText = document.getElementById('currentStepText');
+    const progressBarFill = document.getElementById('progressBarFill');
+
+    // Modal controls
+    const toggleModal = (show) => {
+      submitModal.classList.toggle('hidden', !show);
+    };
+    openSubmitModal.addEventListener('click', () => toggleModal(true));
+    closeSubmitModal.addEventListener('click', () => toggleModal(false));
+    startFirstJobBtn.addEventListener('click', () => toggleModal(true));
+
+    // Handle Form Submit
+    clipForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const vodUrl = vodUrlInput.value.trim();
+      const maxClips = parseInt(maxClipsInput.value, 10);
+      const vertical = verticalInput.value === 'true';
+
+      toggleModal(false);
+      emptyState.classList.add('hidden');
+      clipsFeed.classList.add('hidden');
+      processingState.classList.remove('hidden');
+
+      try {
+        const res = await fetch('/api/v1/jobs/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            vod_url: vodUrl,
+            max_clips: maxClips,
+            vertical: vertical
+          })
+        });
+
+        const data = await res.json();
+        listenToJobProgress(data.job_id);
+      } catch (err) {
+        alert('Failed to submit job: ' + err.message);
+        processingState.classList.add('hidden');
+        emptyState.classList.remove('hidden');
+      }
+    });
+
+    // WebSocket / Polling Progress Listener
+    function listenToJobProgress(jobId) {
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${location.host}/ws/jobs/${jobId}/progress`;
+      const ws = new WebSocket(wsUrl);
+
+      ws.onmessage = (event) => {
+        const update = JSON.parse(event.data);
+        progressPercentText.innerText = `${update.progress_percent}%`;
+        progressBarFill.style.width = `${update.progress_percent}%`;
+        currentStepText.innerText = update.current_step;
+
+        if (update.progress_percent >= 100 || update.status === 'COMPLETED') {
+          ws.close();
+          fetchAndShowClips(jobId);
+        }
+      };
+
+      ws.onerror = () => {
+        // Fallback to polling if websocket fails
+        pollJobStatus(jobId);
+      };
+    }
+
+    async function pollJobStatus(jobId) {
+      const interval = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/v1/jobs/${jobId}`);
+          const job = await res.json();
+          progressPercentText.innerText = `${job.progress_percent}%`;
+          progressBarFill.style.width = `${job.progress_percent}%`;
+          currentStepText.innerText = job.current_step;
+
+          if (job.status === 'COMPLETED') {
+            clearInterval(interval);
+            showClips(job.clips);
+          } else if (job.status === 'FAILED') {
+            clearInterval(interval);
+            alert('Processing failed: ' + job.error_message);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }, 2000);
+    }
+
+    async function fetchAndShowClips(jobId) {
+      const res = await fetch(`/api/v1/jobs/${jobId}`);
+      const job = await res.json();
+      showClips(job.clips);
+    }
+
+    function showClips(clips) {
+      processingState.classList.add('hidden');
+      clipsFeed.innerHTML = '';
+
+      if (!clips || clips.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      clipsFeed.classList.remove('hidden');
+
+      clips.forEach((clip, index) => {
+        const card = document.createElement('div');
+        card.className = 'clip-card w-full flex items-center justify-center bg-black overflow-hidden relative';
+
+        card.innerHTML = `
+          <video src="${clip.video_url}" playsinline loop class="w-full h-full object-cover"></video>
+          
+          <!-- Gradient Overlay -->
+          <div class="gradient-overlay absolute inset-0 pointer-events-none"></div>
+
+          <!-- Bottom Meta Info -->
+          <div class="absolute bottom-6 left-4 right-16 z-20 pointer-events-auto">
+            <div class="flex items-center space-x-2 mb-2">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-pink-500/20 text-pink-400 border border-pink-500/30">
+                ${clip.viral_category}
+              </span>
+              <span class="text-xs text-slate-300 font-mono">Score: ${clip.score}</span>
+            </div>
+            <h4 class="text-lg font-bold leading-tight mb-1 text-white">${clip.title}</h4>
+            <p class="text-xs text-slate-300">Duration: ${clip.duration.toFixed(1)}s • ${clip.dominant_signal}</p>
+          </div>
+
+          <!-- Right Floating Action Buttons -->
+          <div class="absolute right-3 bottom-10 z-30 flex flex-col items-center space-y-4">
+            <!-- Play/Pause Button -->
+            <button class="play-btn w-11 h-11 rounded-full bg-slate-900/60 backdrop-blur-md border border-slate-700/50 flex items-center justify-center text-white active:scale-95 transition">
+              <i data-lucide="play" class="w-5 h-5 fill-white"></i>
+            </button>
+
+            <!-- Share Button -->
+            <button class="share-btn w-11 h-11 rounded-full bg-slate-900/60 backdrop-blur-md border border-slate-700/50 flex items-center justify-center text-white active:scale-95 transition" data-url="${clip.video_url}" data-title="${clip.title}">
+              <i data-lucide="share-2" class="w-5 h-5"></i>
+            </button>
+
+            <!-- Download Button -->
+            <a href="${clip.video_url}" download="clip_${index + 1}.mp4" class="w-11 h-11 rounded-full bg-purple-600/80 backdrop-blur-md flex items-center justify-center text-white active:scale-95 transition shadow-lg shadow-purple-600/30">
+              <i data-lucide="download" class="w-5 h-5"></i>
+            </a>
+          </div>
+        `;
+
+        clipsFeed.appendChild(card);
+      });
+
+      lucide.createIcons();
+      setupVideoIntersectionObserver();
+      setupShareButtons();
+    }
+
+    // Auto-play videos as user scrolls through the vertical feed
+    function setupVideoIntersectionObserver() {
+      const videos = document.querySelectorAll('.clip-card video');
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          const video = entry.target;
+          const playBtn = video.closest('.clip-card').querySelector('.play-btn i');
+          if (entry.isIntersecting) {
+            video.play().catch(() => {});
+            if (playBtn) playBtn.setAttribute('data-lucide', 'pause');
+          } else {
+            video.pause();
+            if (playBtn) playBtn.setAttribute('data-lucide', 'play');
+          }
+          lucide.createIcons();
+        });
+      }, { threshold: 0.6 });
+
+      videos.forEach(v => observer.observe(v));
+
+      // Click to toggle play/pause
+      document.querySelectorAll('.play-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const video = btn.closest('.clip-card').querySelector('video');
+          if (video.paused) {
+            video.play();
+          } else {
+            video.pause();
+          }
+        });
+      });
+    }
+
+    // Native Android Web Share API (Triggers native TikTok, Instagram, WhatsApp share)
+    function setupShareButtons() {
+      document.querySelectorAll('.share-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const videoUrl = location.origin + btn.getAttribute('data-url');
+          const title = btn.getAttribute('data-title');
+          if (navigator.share) {
+            try {
+              await navigator.share({
+                title: title,
+                text: 'Check out this viral clip from stream!',
+                url: videoUrl
+              });
+            } catch (err) {
+              console.log('Share dismissed');
+            }
+          } else {
+            navigator.clipboard.writeText(videoUrl);
+            alert('Clip link copied to clipboard!');
+          }
+        });
+      });
+    }
+  </script>
+</body>
+</html>
