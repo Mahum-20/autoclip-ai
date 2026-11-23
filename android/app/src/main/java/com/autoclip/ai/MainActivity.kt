@@ -96,7 +96,7 @@ fun AutoClipMainScreen() {
                     verticalArrangement = Arrangement.Center
                 ) {
                     CircularProgressIndicator(
-                        progress = { progressPercent / 100f },
+                        progress = progressPercent / 100f,
                         modifier = Modifier.size(96.dp),
                         color = Color(0xFFC084FC),
                         strokeWidth = 6.dp

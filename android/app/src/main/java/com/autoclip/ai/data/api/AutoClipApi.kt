@@ -14,10 +14,10 @@ import java.util.concurrent.TimeUnit
 
 interface AutoClipApi {
     @POST("/api/v1/jobs/submit")
-    async suspend fun submitJob(@Body request: ClipSubmitRequest): JobStatusResponse
+    suspend fun submitJob(@Body request: ClipSubmitRequest): JobStatusResponse
 
     @GET("/api/v1/jobs/{job_id}")
-    async suspend fun getJobStatus(@Path("job_id") jobId: String): JobStatusResponse
+    suspend fun getJobStatus(@Path("job_id") jobId: String): JobStatusResponse
 
     companion object {
         // Change to your PC's local Wi-Fi IP address (e.g., http://192.168.1.100:8000)
