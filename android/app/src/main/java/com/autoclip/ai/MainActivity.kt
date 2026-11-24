@@ -165,8 +165,7 @@ fun AutoClipMainScreen() {
                         ) {
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
-                                color = Color(0xFFEC4899).copy(alpha = 0.25f),
-                                border = null
+                                color = Color(0xFFEC4899).copy(alpha = 0.25f)
                             ) {
                                 Text(
                                     text = clip.viralCategory,
