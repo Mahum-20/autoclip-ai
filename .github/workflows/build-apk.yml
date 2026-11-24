@@ -26,12 +26,22 @@ jobs:
 
       - name: Build Debug APK with Gradle Wrapper
         working-directory: ./android
-        run: ./gradlew assembleDebug --stacktrace --no-daemon
+        run: |
+          set -o pipefail
+          ./gradlew assembleDebug --stacktrace --no-daemon 2>&1 | tee build.log || {
+            echo "## ❌ Gradle Build Failed" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -n 100 build.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            ERR_MSG=$(grep -i -E "error:|FAILURE:" build.log | head -n 3 | tr '\n' ' ')
+            echo "::error::$ERR_MSG"
+            exit 1
+          }
 
       - name: Locate and Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: AutoClip-Debug-APK
-          path: '**/*.apk'
+          path: '**/build/outputs/apk/debug/*.apk'
           if-no-files-found: error
           retention-days: 14
