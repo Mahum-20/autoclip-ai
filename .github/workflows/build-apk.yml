@@ -26,28 +26,12 @@ jobs:
 
       - name: Build Debug APK with Gradle Wrapper
         working-directory: ./android
-        run: |
-          ./gradlew assembleDebug --stacktrace --no-daemon 2>&1 | tee gradle-build.log
+        run: ./gradlew assembleDebug --stacktrace --no-daemon
 
-      - name: Print Gradle Errors if Build Failed
-        if: failure()
-        working-directory: ./android
-        run: |
-          tail -n 150 gradle-build.log
-
-      - name: Upload Build Log on Failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: gradle-build-log
-          path: android/gradle-build.log
-          retention-days: 7
-
-      - name: Upload Debug APK
-        if: success()
+      - name: Locate and Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: AutoClip-Debug-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: '**/*.apk'
           if-no-files-found: error
           retention-days: 14
